@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- 蓝色渐变背景（精准复刻了页面里的 145deg, #507fff 到 #2c52cd） -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#507fff" />
+      <stop offset="100%" stop-color="#2c52cd" />
+    </linearGradient>
+  </defs>
+
+  <!-- 圆角矩形背景（圆角比例 12/40，与页面完全一致） -->
+  <rect width="48" height="48" rx="14" fill="url(#bg)" />
+
+  <!-- 居中的白色图标（按比例放大并居中，去掉了圆头线条里的默认端点以防加粗变丑） -->
+  <g transform="translate(8 8) scale(1.33)" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <line x1="3" y1="12" x2="9" y2="12" />
+    <line x1="15" y1="12" x2="21" y2="12" />
+  </g>
+</svg>
