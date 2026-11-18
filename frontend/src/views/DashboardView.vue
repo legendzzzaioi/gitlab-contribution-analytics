@@ -95,10 +95,10 @@ const peopleOption = computed(() => ({
 
   <section class="stat-grid" :aria-busy="loading">
     <!-- 兜底：加上 ?. 防止 summary 为 undefined -->
-    <StatCard label="有效提交" :value="data.summary?.commits" note="默认分支，已排除合并提交" />
-    <StatCard label="新增代码行" :value="data.summary?.additions" suffix="行" tone="green" note="提交统计的 additions 汇总" />
-    <StatCard label="删除代码行" :value="data.summary?.deletions" suffix="行" tone="orange" note="提交统计的 deletions 汇总" />
-    <StatCard label="活跃贡献者" :value="data.summary?.contributors" tone="purple" :note="`${data.summary?.projects || 0} 个活跃项目`" />
+    <StatCard label="有效提交(当前筛选条件)" :value="data.summary?.commits" note="默认分支，已排除合并提交" />
+    <StatCard label="新增代码行(当前筛选条件)" :value="data.summary?.additions" suffix="行" tone="green" note="提交统计的 additions 汇总" />
+    <StatCard label="删除代码行(当前筛选条件)" :value="data.summary?.deletions" suffix="行" tone="orange" note="提交统计的 deletions 汇总" />
+    <StatCard label="活跃贡献者(当前筛选条件)" :value="data.summary?.contributors" tone="purple" :note="`${data.summary?.projects || 0} 个活跃项目`" />
   </section>
 
   <section class="content-grid dashboard-grid">
