@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -93,6 +94,17 @@ type ProjectStatistics struct {
 	SnippetsSize          int64 `json:"snippets_size"`
 	UploadsSize           int64 `json:"uploads_size"`
 	ContainerRegistrySize int64 `json:"container_registry_size"`
+}
+
+// Branch GitLab 分支信息
+type Branch struct {
+	Name      string `json:"name"`
+	Commit    Commit `json:"commit"`
+	Protected bool   `json:"protected"`
+	Default   bool   `json:"default"`
+	Developed bool   `json:"developers_can_push"`
+	Merged    bool   `json:"can_push"`
+	WebURL    string `json:"web_url"`
 }
 
 // New 创建 GitLab API 客户端
@@ -195,6 +207,109 @@ func (c *Client) ListCommits(ctx context.Context, projectID int64, since *time.T
 		result = append(result, page...)
 		return nil
 	})
+	return result, err
+}
+
+// ListBranchCommits 获取指定分支的提交记录
+func (c *Client) ListBranchCommits(
+	ctx context.Context,
+	projectID int64,
+	branchName string,
+	since *time.Time,
+) ([]Commit, error) {
+	var result []Commit
+
+	path := "/projects/" + strconv.FormatInt(projectID, 10) +
+		"/repository/commits"
+
+	q := url.Values{
+		"with_stats": {"true"},
+		"per_page":   {"100"},
+		"order":      {"topo"},
+		"ref_name":   {branchName},
+	}
+
+	if since != nil {
+		q.Set("since", since.UTC().Format(time.RFC3339))
+	}
+
+	err := c.pages(ctx, path, q, func(body []byte) error {
+		var page []Commit
+		if err := json.Unmarshal(body, &page); err != nil {
+			return err
+		}
+
+		result = append(result, page...)
+		return nil
+	})
+
+	return result, err
+}
+
+// ListAllBranchCommits 获取项目所有分支的提交记录
+func (c *Client) ListAllBranchCommits(
+	ctx context.Context,
+	projectID int64,
+	since *time.Time,
+) ([]Commit, error) {
+	// 获取所有分支
+	branches, err := c.ListBranches(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("获取项目分支失败: %w", err)
+	}
+
+	// 按 Commit SHA 去重
+	commitMap := make(map[string]Commit)
+
+	for _, branch := range branches {
+		commits, err := c.ListBranchCommits(ctx, projectID, branch.Name, since)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"获取分支 %s 提交记录失败: %w",
+				branch.Name,
+				err,
+			)
+		}
+
+		for _, commit := range commits {
+			if _, exists := commitMap[commit.ID]; !exists {
+				commitMap[commit.ID] = commit
+			}
+		}
+	}
+
+	result := make([]Commit, 0, len(commitMap))
+	for _, commit := range commitMap {
+		result = append(result, commit)
+	}
+
+	// 按提交时间倒序排列
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CommittedDate.After(result[j].CommittedDate)
+	})
+
+	return result, nil
+}
+
+// ListBranches 获取项目所有分支
+func (c *Client) ListBranches(ctx context.Context, projectID int64) ([]Branch, error) {
+	var result []Branch
+
+	path := "/projects/" + strconv.FormatInt(projectID, 10) + "/repository/branches"
+	q := url.Values{
+		"per_page": {"100"},
+	}
+
+	err := c.pages(ctx, path, q, func(body []byte) error {
+		var page []Branch
+		if err := json.Unmarshal(body, &page); err != nil {
+			return err
+		}
+
+		result = append(result, page...)
+		return nil
+	})
+
 	return result, err
 }
 

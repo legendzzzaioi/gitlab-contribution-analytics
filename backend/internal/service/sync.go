@@ -375,7 +375,8 @@ func (s *SyncService) sync(
 				)
 			}
 
-			commits, err := client.ListCommits(
+			// 获取所有分支的提交记录，默认分支请用 ListCommits
+			commits, err := client.ListAllBranchCommits(
 				ctx,
 				remoteProject.ID,
 				since,
