@@ -145,8 +145,8 @@ onMounted(async () => {
           </div>
         </label>
         <label>
-          根项目组 ID
-          <span class="label-note">可选。留空同步 Token 可见的全部顶级项目组及其子组；填写多个 ID 时用逗号分隔。</span>
+          根群组 ID
+          <span class="label-note">可选。留空同步 Token 可见的全部顶级群组及其子组；填写多个 ID 时用逗号分隔。</span>
           <input v-model="form.rootGroupIds" placeholder="留空同步全部，或例如：123, 456" />
         </label>
         <label>
@@ -176,9 +176,9 @@ onMounted(async () => {
       <h3>最小权限建议</h3>
       <ol>
         <li>新建专用服务账号。</li>
-        <li>将其赋予目标顶级项目组 Reporter 或更高读取权限。</li>
+        <li>将其赋予目标顶级群组 Reporter 或更高读取权限。</li>
         <li>创建仅含 <code>read_api</code> 的 Access Token。</li>
-        <li>在本页填入项目组数字 ID，不要填路径。</li>
+        <li>在本页填入群组数字 ID，不要填路径。</li>
       </ol>
       <p>首次执行“全量同步”后，系统会基于上次成功时间定时增量更新。</p>
     </aside>

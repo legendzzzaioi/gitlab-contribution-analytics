@@ -56,6 +56,9 @@ func (s *Server) Router() *gin.Engine {
 	api.GET("/sync/runs", s.syncRuns)
 	api.GET("/sync/status", s.syncStatus)
 	api.POST("/sync/run", s.startSync)
+	api.GET("/permissions/tree", s.getPermissionsTree)
+	api.GET("/permissions/users", s.getUsersWithPermissions)
+	api.GET("/permissions/users/:userId", s.getUserPermissions)
 	return r
 }
 

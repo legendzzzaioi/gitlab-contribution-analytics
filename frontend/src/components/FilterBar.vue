@@ -51,7 +51,7 @@ function reset() {
   apply()
 }
 
-// 监听项目组变化，清空项目筛选
+// 监听群组变化，清空项目筛选
 watch(
   () => filters.groupId,
   () => {
@@ -80,9 +80,9 @@ defineExpose({ reloadOptions: loadOptions })
       <input id="to" v-model="filters.to" type="date" />
     </div>
     <div class="filter-field">
-      <label for="group">项目组</label>
+      <label for="group">群组</label>
       <select id="group" v-model="filters.groupId" :disabled="loading">
-        <option value="">全部项目组</option>
+        <option value="">全部群组</option>
         <option v-for="item in groups" :key="item.gitlabId" :value="item.gitlabId">{{ item.name }}</option>
       </select>
     </div>

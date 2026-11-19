@@ -20,10 +20,13 @@ type Client struct {
 
 // Group GitLab 组信息
 type Group struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	FullPath string `json:"full_path"`
-	WebURL   string `json:"web_url"`
+	ID          int64     `json:"id"`
+	ParentID    int64     `json:"parent_id"`
+	Name        string    `json:"name"`
+	FullPath    string    `json:"full_path"`
+	WebURL      string    `json:"web_url"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // Namespace GitLab 命名空间信息
@@ -35,14 +38,19 @@ type Namespace struct {
 
 // Project GitLab 项目信息
 type Project struct {
-	ID                int64     `json:"id"`
-	Name              string    `json:"name"`
-	PathWithNamespace string    `json:"path_with_namespace"`
-	WebURL            string    `json:"web_url"`
-	DefaultBranch     string    `json:"default_branch"`
-	Archived          bool      `json:"archived"`
-	Namespace         Namespace `json:"namespace"`
+	ID                int64             `json:"id"`
+	Name              string            `json:"name"`
+	PathWithNamespace string            `json:"path_with_namespace"`
+	WebURL            string            `json:"web_url"`
+	DefaultBranch     string            `json:"default_branch"`
+	Archived          bool              `json:"archived"`
+	Namespace         Namespace         `json:"namespace"`
+	Description       string            `json:"description"`
+	CreatedAt         time.Time         `json:"created_at"`
+	Statistics        ProjectStatistics `json:"statistics"`
 }
+
+// Commit GitLab 提交信息
 type Commit struct {
 	ID            string    `json:"id"`
 	ShortID       string    `json:"short_id"`
@@ -59,6 +67,32 @@ type Commit struct {
 		Deletions int `json:"deletions"`
 		Total     int `json:"total"`
 	} `json:"stats"`
+}
+
+// Member GitLab 成员信息
+type Member struct {
+	ID           int64      `json:"id"`
+	Name         string     `json:"name"`
+	Username     string     `json:"username"`
+	AccessLevel  int        `json:"access_level"`
+	CreatedAt    *time.Time `json:"created_at"`
+	ExpiresAt    *time.Time `json:"-"`
+	ExpiresAtRaw *string    `json:"expires_at"`
+}
+
+// ProjectStatistics 项目统计信息
+type ProjectStatistics struct {
+	CommitCount           int64 `json:"commit_count"`
+	StorageSize           int64 `json:"storage_size"`
+	RepositorySize        int64 `json:"repository_size"`
+	WikiSize              int64 `json:"wiki_size"`
+	LFSObjectsSize        int64 `json:"lfs_objects_size"`
+	JobArtifactsSize      int64 `json:"job_artifacts_size"`
+	PipelineArtifactsSize int64 `json:"pipeline_artifacts_size"`
+	PackagesSize          int64 `json:"packages_size"`
+	SnippetsSize          int64 `json:"snippets_size"`
+	UploadsSize           int64 `json:"uploads_size"`
+	ContainerRegistrySize int64 `json:"container_registry_size"`
 }
 
 // New 创建 GitLab API 客户端
@@ -105,7 +139,7 @@ func (c *Client) ListTopLevelGroups(ctx context.Context) ([]Group, error) {
 func (c *Client) ListProjects(ctx context.Context, groupID int64) ([]Project, error) {
 	var result []Project
 	path := "/groups/" + strconv.FormatInt(groupID, 10) + "/projects"
-	q := url.Values{"include_subgroups": {"true"}, "per_page": {"100"}, "archived": {"false"}, "order_by": {"id"}, "sort": {"asc"}}
+	q := url.Values{"include_subgroups": {"true"}, "per_page": {"100"}, "archived": {"false"}, "order_by": {"id"}, "sort": {"asc"}, "statistics": {"true"}}
 	err := c.pages(ctx, path, q, func(body []byte) error {
 		var page []Project
 		if err := json.Unmarshal(body, &page); err != nil {
@@ -115,6 +149,34 @@ func (c *Client) ListProjects(ctx context.Context, groupID int64) ([]Project, er
 		return nil
 	})
 	return result, err
+}
+
+// ListSubGroups 获取指定 Group 下的所有直接子 Group
+func (c *Client) ListSubGroups(ctx context.Context, groupID int64) ([]Group, error) {
+	var result []Group
+
+	path := fmt.Sprintf("/groups/%d/subgroups", groupID)
+
+	query := url.Values{}
+	query.Set("per_page", "100")
+	query.Set("order_by", "id")
+	query.Set("sort", "asc")
+
+	err := c.pages(ctx, path, query, func(body []byte) error {
+		var groups []Group
+		if err := json.Unmarshal(body, &groups); err != nil {
+			return fmt.Errorf("解析子组数据失败: %w", err)
+		}
+
+		result = append(result, groups...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("获取 Group %d 子组失败: %w", groupID, err)
+	}
+
+	return result, nil
 }
 
 // ListCommits 获取项目提交记录
@@ -190,4 +252,137 @@ func (c *Client) raw(ctx context.Context, path string, q url.Values) ([]byte, ht
 		return nil, nil, fmt.Errorf("GitLab API 返回 %s: %s", resp.Status, strings.TrimSpace(string(body)))
 	}
 	return body, resp.Header, nil
+}
+
+// ListMembers 获取指定 Group 或 Project 的直接成员
+// targetType: "groups" 或 "projects"
+func (c *Client) ListMembers(
+	ctx context.Context,
+	targetType string,
+	targetID int64,
+) ([]Member, error) {
+	return c.listMembers(ctx, targetType, targetID, false)
+}
+
+// ListAllMembers 获取指定 Group 或 Project 的所有成员（包括继承的）
+// targetType: "groups" 或 "projects"
+func (c *Client) ListAllMembers(
+	ctx context.Context,
+	targetType string,
+	targetID int64,
+) ([]Member, error) {
+	return c.listMembers(ctx, targetType, targetID, true)
+}
+
+// listMembers 内部方法，用于获取成员列表
+func (c *Client) listMembers(
+	ctx context.Context,
+	targetType string,
+	targetID int64,
+	all bool,
+) ([]Member, error) {
+	if targetType != "groups" && targetType != "projects" {
+		return nil, fmt.Errorf("不支持的成员目标类型: %s", targetType)
+	}
+
+	endpoint := fmt.Sprintf("/%s/%d/members", targetType, targetID)
+	if all {
+		endpoint += "/all"
+	}
+
+	query := url.Values{}
+	query.Set("per_page", "100")
+
+	var result []Member
+
+	err := c.pages(ctx, endpoint, query, func(body []byte) error {
+		var members []Member
+		if err := json.Unmarshal(body, &members); err != nil {
+			return fmt.Errorf("解析成员数据失败: %w", err)
+		}
+
+		result = append(result, members...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("获取 %s %d 成员失败: %w", targetType, targetID, err)
+	}
+
+	for i := range result {
+		if result[i].ExpiresAtRaw == nil || *result[i].ExpiresAtRaw == "" {
+			continue
+		}
+
+		expiresAt, err := time.Parse("2006-01-02", *result[i].ExpiresAtRaw)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"解析成员过期时间失败，userID=%d, expiresAt=%s: %w",
+				result[i].ID,
+				*result[i].ExpiresAtRaw,
+				err,
+			)
+		}
+
+		result[i].ExpiresAt = &expiresAt
+	}
+
+	return result, nil
+}
+
+// ListInvitedGroups 获取当前 Group 直接邀请进来的 Group。
+// 这些 Group 是当前 Group 的共享权限来源。
+func (c *Client) ListInvitedGroups(
+	ctx context.Context,
+	groupID int64,
+) ([]Group, error) {
+	var result []Group
+
+	path := fmt.Sprintf(
+		"/groups/%d/invited_groups",
+		groupID,
+	)
+
+	query := url.Values{}
+	query.Set("per_page", "100")
+	query.Set("relation", "direct")
+	query.Set("order_by", "id")
+	query.Set("sort", "asc")
+
+	err := c.pages(ctx, path, query, func(body []byte) error {
+		var groups []Group
+
+		if err := json.Unmarshal(body, &groups); err != nil {
+			return fmt.Errorf(
+				"解析邀请群组数据失败: %w",
+				err,
+			)
+		}
+
+		result = append(result, groups...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf(
+			"获取 Group %d 的邀请群组失败: %w",
+			groupID,
+			err,
+		)
+	}
+
+	return result, nil
+}
+
+// GetProject 获取项目详情及统计信息
+func (c *Client) GetProject(ctx context.Context, projectID int64) (*Project, error) {
+	var project Project
+
+	path := fmt.Sprintf("/projects/%d?statistics=true", projectID)
+
+	if err := c.get(ctx, path, nil, &project); err != nil {
+		return nil, err
+	}
+
+	return &project, nil
 }

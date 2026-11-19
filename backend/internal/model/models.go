@@ -16,29 +16,37 @@ type Setting struct {
 
 // Group GitLab组
 type Group struct {
-	ID           uint      `gorm:"primaryKey;comment:主键" json:"id"`                    // 主键
-	GitLabID     int64     `gorm:"uniqueIndex;comment:GitLab 组 ID" json:"gitlabId"`    // GitLab组ID
-	RootGitLabID int64     `gorm:"index;comment:所属根项目组 GitLab ID" json:"rootGitlabId"` // 根组ID
-	Name         string    `gorm:"size:255;comment:组名" json:"name"`                    // 组名
-	FullPath     string    `gorm:"size:500;index;comment:组完整路径" json:"fullPath"`       // 完整路径
-	WebURL       string    `gorm:"size:1000;comment:GitLab 组页面链接" json:"webUrl"`       // Web URL
-	CreatedAt    time.Time `gorm:"comment:创建时间" json:"createdAt"`                      // 创建时间
-	UpdatedAt    time.Time `gorm:"comment:更新时间" json:"updatedAt"`                      // 更新时间
+	ID             uint      `gorm:"primaryKey;comment:主键" json:"id"`                                // 主键
+	GitLabID       int64     `gorm:"uniqueIndex;comment:GitLab 组 ID" json:"gitlabId"`                // GitLab组ID
+	ParentGitLabID int64     `gorm:"index;comment:父级 Group 的 GitLab ID，根组为 0" json:"parentGitlabId"` // 父级组ID
+	RootGitLabID   int64     `gorm:"index;comment:所属根项目组 GitLab ID" json:"rootGitlabId"`             // 根组ID
+	Name           string    `gorm:"size:255;comment:组名" json:"name"`                                // 组名
+	FullPath       string    `gorm:"size:500;index;comment:组完整路径" json:"fullPath"`                   // 完整路径
+	WebURL         string    `gorm:"size:1000;comment:GitLab 组页面链接" json:"webUrl"`                   // Web URL
+	CreationDate   time.Time `gorm:"comment:群组创建时间" json:"creationDate"`                             // 群组创建时间
+	CreatedAt      time.Time `gorm:"comment:创建时间" json:"createdAt"`                                  // 创建时间
+	UpdatedAt      time.Time `gorm:"comment:更新时间" json:"updatedAt"`                                  // 更新时间
+	Description    string    `gorm:"type:text;comment:组描述" json:"description"`                       // 组描述
 }
 
 // Project GitLab项目
 type Project struct {
-	ID            uint      `gorm:"primaryKey;comment:主键" json:"id"`                              // 主键
-	GitLabID      int64     `gorm:"uniqueIndex;comment:GitLab 项目 ID" json:"gitlabId"`             // GitLab项目ID
-	GroupID       *uint     `gorm:"index;comment:所属组 ID，可为空" json:"groupId"`                      // 组ID
-	Name          string    `gorm:"size:255;comment:项目名" json:"name"`                             // 项目名
-	PathWithNS    string    `gorm:"size:500;index;comment:项目带命名空间的完整路径" json:"pathWithNamespace"` // 路径
-	WebURL        string    `gorm:"size:1000;comment:GitLab 项目页面链接" json:"webUrl"`                // Web URL
-	DefaultBranch string    `gorm:"size:255;comment:默认分支" json:"defaultBranch"`                   // 默认分支
-	Archived      bool      `gorm:"comment:是否已归档" json:"archived"`                                // 是否归档
-	CreatedAt     time.Time `gorm:"comment:创建时间" json:"createdAt"`                                // 创建时间
-	UpdatedAt     time.Time `gorm:"comment:更新时间" json:"updatedAt"`                                // 更新时间
-	Group         *Group    `gorm:"comment:关联组" json:"group,omitempty"`                           // 组
+	ID             uint      `gorm:"primaryKey;comment:主键" json:"id"`                              // 主键
+	GitLabID       int64     `gorm:"uniqueIndex;comment:GitLab 项目 ID" json:"gitlabId"`             // GitLab项目ID
+	GroupID        *uint     `gorm:"index;comment:所属组 ID，可为空" json:"groupId"`                      // 组ID
+	Name           string    `gorm:"size:255;comment:项目名" json:"name"`                             // 项目名
+	PathWithNS     string    `gorm:"size:500;index;comment:项目带命名空间的完整路径" json:"pathWithNamespace"` // 路径
+	WebURL         string    `gorm:"size:1000;comment:GitLab 项目页面链接" json:"webUrl"`                // Web URL
+	DefaultBranch  string    `gorm:"size:255;comment:默认分支" json:"defaultBranch"`                   // 默认分支
+	Archived       bool      `gorm:"comment:是否已归档" json:"archived"`                                // 是否归档
+	CreationDate   time.Time `gorm:"comment:项目创建时间" json:"creationDate"`                           // 项目创建时间
+	CreatedAt      time.Time `gorm:"comment:创建时间" json:"createdAt"`                                // 创建时间
+	UpdatedAt      time.Time `gorm:"comment:更新时间" json:"updatedAt"`                                // 更新时间
+	Group          *Group    `gorm:"comment:关联组" json:"group,omitempty"`                           // 组
+	Description    string    `gorm:"type:text;comment:项目描述" json:"description"`                    // 项目描述
+	StorageSize    int64     `gorm:"comment:项目总存储大小，单位字节;default:0" json:"storageSize"`            // 项目总存储大小，单位字节
+	RepositorySize int64     `gorm:"comment:代码仓库存储大小，单位字节;default:0" json:"repositorySize"`        // 代码仓库存储大小，单位字节
+	CommitCount    int64     `gorm:"comment:提交次数;default:0" json:"commitCount"`                    // 提交次数
 }
 
 // User GitLab用户
@@ -96,4 +104,22 @@ type SyncRun struct {
 	ProjectsScanned int        `gorm:"comment:本次扫描的项目数" json:"projectsScanned"`                          // 扫描的项目数
 	CommitsSynced   int        `gorm:"comment:本次同步的提交数" json:"commitsSynced"`                            // 同步的提交数
 	ErrorMessage    string     `gorm:"type:text;comment:错误信息" json:"errorMessage"`                       // 错误信息
+}
+
+// Member 权限成员记录
+type Member struct {
+	ID                   uint       `gorm:"primaryKey;comment:主键" json:"id"`                                                                          // 主键
+	TargetType           string     `gorm:"size:20;index:idx_target;uniqueIndex:uk_member_target_user;comment:关联类型(group/project)" json:"targetType"` // 关联类型
+	TargetGitLabID       int64      `gorm:"index:idx_target;uniqueIndex:uk_member_target_user;comment:关联群组或项目的ID" json:"targetGitlabId"`              // 关联ID
+	UserID               int64      `gorm:"index;uniqueIndex:uk_member_target_user;comment:GitLab用户ID" json:"userId"`                                 // 用户ID
+	UserName             string     `gorm:"size:255;comment:用户姓名" json:"userName"`                                                                    // 用户姓名
+	Username             string     `gorm:"size:255;comment:账号名" json:"username"`                                                                     // 账号名
+	AccessLevel          int        `gorm:"comment:权限级别(10=Guest,20=Reporter,30=Developer,40=Maintainer,50=Owner)" json:"accessLevel"`                // 权限级别
+	Inherited            bool       `gorm:"default:false;comment:是否为继承权限" json:"inherited"`                                                           // 是否为继承权限
+	SourceTargetType     string     `gorm:"size:20;comment:权限来源类型" json:"sourceTargetType"`                                                           // 权限来源类型
+	SourceTargetGitLabID int64      `gorm:"comment:权限来源GitLab ID" json:"sourceTargetGitlabId"`                                                        // 权限来源GitLab ID
+	GrantedAt            *time.Time `gorm:"comment:GitLab 授权时间" json:"grantedAt"`                                                                     // GitLab 授权时间
+	ExpiresAt            *time.Time `gorm:"comment:过期时间" json:"expiresAt"`                                                                            // 过期时间
+	CreatedAt            time.Time  `gorm:"comment:创建时间" json:"createdAt"`                                                                            // 创建时间
+	UpdatedAt            time.Time  `gorm:"comment:更新时间" json:"updatedAt"`                                                                            // 更新时间
 }

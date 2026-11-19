@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"strconv"
 )
 
 // Config结构体
@@ -31,17 +30,6 @@ func Load() Config {
 func value(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
-	}
-	return fallback
-}
-
-// boolValue获取环境变量值并转换为bool
-func boolValue(key string, fallback bool) bool {
-	if v := os.Getenv(key); v != "" {
-		parsed, err := strconv.ParseBool(v)
-		if err == nil {
-			return parsed
-		}
 	}
 	return fallback
 }

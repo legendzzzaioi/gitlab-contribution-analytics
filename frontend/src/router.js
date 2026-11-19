@@ -5,6 +5,8 @@ const CommitsView = () => import('./views/CommitsView.vue')
 const SyncView = () => import('./views/SyncView.vue')
 const SettingsView = () => import('./views/SettingsView.vue')
 const LoginView = () => import('./views/LoginView.vue')
+const PermissionsTreeView = () => import('./views/PermissionsTreeView.vue')
+const PermissionsUserView = () => import('./views/PermissionsUserView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,7 +16,9 @@ const router = createRouter({
     { path: '/contributions', component: ContributionsView, meta: { title: '贡献者' } },
     { path: '/commits', component: CommitsView, meta: { title: '提交明细' } },
     { path: '/sync', component: SyncView, meta: { title: '同步中心' } },
-    { path: '/settings', component: SettingsView, meta: { title: '数据源配置' } }
+    { path: '/settings', component: SettingsView, meta: { title: '数据源配置' } },
+    { path: '/permissions/tree', component: PermissionsTreeView, meta: { title: '群组权限' } },
+    { path: '/permissions/user', component: PermissionsUserView, meta: { title: '人员权限' } }
   ]
 })
 router.beforeEach((to) => {

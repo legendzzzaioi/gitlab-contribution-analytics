@@ -142,7 +142,7 @@ onBeforeUnmount(() => clearInterval(timer))
     <TriangleAlert :size="18" />
     <div>
       <b>全量同步提示</b>
-      <p>首次同步会遍历所选项目组及所有子组项目的默认分支提交。仓库历史很长时请安排在低峰期执行，并使用只读服务账号令牌。</p>
+      <p>首次同步会遍历所选群组及所有子组项目的默认分支提交。仓库历史很长时请安排在低峰期执行，并使用只读服务账号令牌。</p>
     </div>
   </section>
 </template>

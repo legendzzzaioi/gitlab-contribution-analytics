@@ -10,6 +10,8 @@ const links = [
   { to: '/', label: '总览', icon: BarChart3 },
   { to: '/contributions', label: '贡献者', icon: UsersRound },
   { to: '/commits', label: '提交明细', icon: GitCommitHorizontal },
+  { to: '/permissions/tree', label: '群组权限', icon: UsersRound },
+  { to: '/permissions/user', label: '人员权限', icon: UsersRound },
   { to: '/sync', label: '同步中心', icon: RefreshCw },
   { to: '/settings', label: '数据源配置', icon: Settings }
 ]

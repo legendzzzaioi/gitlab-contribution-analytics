@@ -70,14 +70,15 @@ async function exportCsv() {
       </button>
     </div>
     <p v-if="error" class="error-banner">{{ error }}</p>
+    
     <div class="table-scroll">
       <table class="commit-table">
         <thead>
           <tr>
             <th style="width: 140px;">提交时间</th>
-            <th style="width: 180px;">贡献者</th>
-            <th style="width: 200px;">项目</th>
-            <th>提交信息</th> <!-- 不设宽度，自动撑满剩余空间 -->
+            <th style="width: 160px;">贡献者</th>
+            <th>项目</th> <!-- 不限制宽度，让它自由撑开 -->
+            <th style="width: 380px;">提交信息</th> <!-- 限制最大宽度 -->
             <th style="width: 100px; text-align: right;">变更</th>
           </tr>
         </thead>
@@ -87,20 +88,23 @@ async function exportCsv() {
             <td>
               <div class="person compact">
                 <div class="avatar">{{ (item.user?.name || item.authorName)?.slice(0, 1) }}</div>
-                <div class="truncate" style="max-width: 130px;">
+                <div class="truncate" style="max-width: 120px;">
                   <b class="truncate">{{ item.user?.name || item.authorName }}</b>
                   <small class="truncate">{{ item.authorEmail }}</small>
                 </div>
               </div>
             </td>
             <td>
-              <div class="truncate" style="max-width: 180px;">
+              <!-- 项目列：完整展示，允许换行 -->
+              <div style="white-space: normal; min-width: 150px; line-height: 1.4;">
                 <span class="tag">{{ item.project?.group?.name || '未分组' }}</span>
-                <small class="block truncate">{{ item.project?.pathWithNamespace }}</small>
+                <small class="block" style="color: #61708a; margin-top: 4px;">
+                  {{ item.project?.pathWithNamespace }}
+                </small>
               </div>
             </td>
             <td>
-              <!-- 提交信息列：限制最大宽度，超出缩略 -->
+              <!-- 提交信息列：超长缩略 -->
               <a
                 v-if="item.webUrl"
                 :href="item.webUrl"
@@ -108,19 +112,18 @@ async function exportCsv() {
                 rel="noopener"
                 class="commit-title truncate"
                 :title="item.title"
-                style="max-width: 100%; display: flex;"
+                style="max-width: 380px; display: flex;"
               >
                 <code style="flex-shrink: 0;">{{ item.shortSha }}</code>
                 <span class="truncate" style="margin: 0 4px;">{{ item.title }}</span>
                 <ExternalLink :size="13" style="flex-shrink: 0;" />
               </a>
-              <span v-else class="commit-title truncate" :title="item.title" style="max-width: 100%; display: flex;">
+              <span v-else class="commit-title truncate" :title="item.title" style="max-width: 380px; display: flex;">
                 <code style="flex-shrink: 0;">{{ item.shortSha }}</code>
                 <span class="truncate" style="margin: 0 4px;">{{ item.title }}</span>
               </span>
             </td>
             <td style="text-align: right;">
-              <!-- 变更列：靠右对齐并保持在一行 -->
               <div style="display: flex; justify-content: flex-end; gap: 6px; font-family: 'DM Mono', monospace; font-weight: 600;">
                 <span class="positive">+{{ item.additions }}</span>
                 <span class="negative">−{{ item.deletions }}</span>
@@ -133,6 +136,7 @@ async function exportCsv() {
         </tbody>
       </table>
     </div>
+    
     <div class="pagination">
       <span>共 {{ total.toLocaleString() }} 条 · 第 {{ page }} / {{ pages }} 页</span>
       <div>
@@ -148,7 +152,7 @@ async function exportCsv() {
 </template>
 
 <style scoped>
-/* 强制文字单行截断并显示省略号的通用类 */
+/* 强制单行截断并显示省略号 */
 .truncate {
   white-space: nowrap;
   overflow: hidden;
@@ -156,7 +160,6 @@ async function exportCsv() {
   display: block;
 }
 
-/* 覆盖原有的 commit-title 样式，让它适应 Flex 布局 */
 .commit-title {
   text-decoration: none;
   color: #30466f;
@@ -168,8 +171,9 @@ async function exportCsv() {
   color: var(--brand);
 }
 
-/* 覆盖原本的 small 和 b，支持截断 */
-.person small, .person b {
-  display: block;
+/* 表格基础优化：允许单元格内的文字换行 */
+.commit-table td {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 </style>
